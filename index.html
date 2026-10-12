@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>prova</title>
+<body style="font:14px/1.5 monospace;padding:12px;word-break:break-all">
+<h3 id="esito">...</h3>
+<pre id="out"></pre>
+<p>
+  <button id="b1">openTelegramLink</button>
+  <button id="b2">openLink</button>
+  <button id="b3">location.replace</button>
+</p>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+const righe = [];
+const dice = (k, v) => righe.push(k + ": " + v);
+
+// 1) initData dal frammento, senza lo script di Telegram.
+const frammento = new URLSearchParams(location.hash.slice(1));
+const dalHash = frammento.get("tgWebAppData") || "";
+const startDalHash = frammento.get("tgWebAppStartParam") || "(assente)";
+
+// 2) initData dallo script.
+const wa = window.Telegram && window.Telegram.WebApp;
+const dalloScript = (wa && wa.initData) || "";
+
+dice("hash grezzo", location.hash || "(vuoto)");
+dice("tgWebAppStartParam", startDalHash);
+dice("initData dal frammento", dalHash ? "presente (" + dalHash.length + " car.)" : "ASSENTE");
+dice("initData dallo script", dalloScript ? "presente (" + dalloScript.length + " car.)" : "ASSENTE");
+dice("i due coincidono", dalHash && dalloScript ? String(dalHash === dalloScript) : "n/d");
+
+// 3) I campi, letti dal frammento.
+if (dalHash) {
+  const p = new URLSearchParams(dalHash);
+  let u = {};
+  try { u = JSON.parse(p.get("user") || "{}"); } catch (e) { dice("user", "non interpretabile"); }
+  dice("user.id", u.id === undefined ? "ASSENTE" : u.id);
+  dice("user.language_code", u.language_code || "(assente)");
+  dice("start_param", p.get("start_param") || "ASSENTE");
+  dice("auth_date", p.get("auth_date") || "ASSENTE");
+  dice("firma presente", p.get("hash") ? "si" : "NO");
+  // Quanto e passato da quando Telegram ha firmato: e la misura
+  // oggettiva del lampo, dal tocco alla pagina pronta.
+  const ad = parseInt(p.get("auth_date") || "0", 10);
+  if (ad) dice("lampo (s)", ((Date.now() / 1000) - ad).toFixed(1));
+  document.getElementById("esito").textContent =
+    u.id ? "MINI APP, identita presente" : "MINI APP, identita assente";
+} else {
+  document.getElementById("esito").textContent = "NESSUN initData (fuori da Telegram?)";
+}
+
+dice("versione WebApp", (wa && wa.version) || "(script assente)");
+dice("piattaforma", (wa && wa.platform) || "(script assente)");
+dice("user agent", navigator.userAgent);
+document.getElementById("out").textContent = righe.join("\n");
+if (wa && wa.ready) wa.ready();
+
+const META_TG = "https://t.me/telegram";
+const META_WEB = "https://example.com/";
+document.getElementById("b1").onclick = () => wa.openTelegramLink(META_TG);
+document.getElementById("b2").onclick = () => wa.openLink(META_WEB);
+document.getElementById("b3").onclick = () => location.replace(META_WEB);
+</script>
